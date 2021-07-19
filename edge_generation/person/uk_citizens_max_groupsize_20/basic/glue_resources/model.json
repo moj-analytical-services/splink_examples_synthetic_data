@@ -1,0 +1,188 @@
+{
+    "link_type": "dedupe_only",
+    "unique_id_column_name": "unique_id",
+    "blocking_rules": [
+        "l.forename1_dm = r.forename1_dm and l.occupation = r.occupation and l.dob_year = r.dob_year",
+        "l.postcode = r.postcode and l.surname_dm = r.surname_dm",
+        "l.postcode = r.postcode and l.forename1_dm = r.forename1_dm",
+        "l.outward_postcode_std = r.outward_postcode_std and l.dob = r.dob",
+        "l.forename1_dm = r.forename1_dm and l.surname_dm = r.surname_dm and l.forename2_std = r.forename2_std",
+        "l.forename1_dm = r.forename1_dm and l.surname_dm = r.surname_dm and l.birth_place = r.birth_place"
+    ],
+    "comparison_columns": [
+        {
+            "custom_name": "surname_std",
+            "case_expression": "case\n    when surname_std_l is null or surname_std_r is null then -1\n    when jaro_winkler_sim(surname_std_l, surname_std_r) >= 1.0 then 3\n    when (jaro_winkler_sim(ifnull(surname_std_l, '1234abcd5678'), ifnull(forename1_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(surname_std_l, '1234abcd5678'), ifnull(forename2_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(surname_std_l, '1234abcd5678'), ifnull(forename3_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(surname_std_l, '1234abcd5678'), ifnull(forename4_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(surname_std_l, '1234abcd5678'), ifnull(forename5_std_r, '987pqrxyz654')) >= 1.0) then 2\n    \n        when Dmetaphone(surname_std_l) = Dmetaphone(surname_std_r) then 1\n        when DmetaphoneAlt(surname_std_l) = DmetaphoneAlt(surname_std_r) then 1\n        \n    when jaro_winkler_sim(surname_std_l, surname_std_r) >= 0.88 then 1\n    else 0 end  as gamma_surname_std",
+            "custom_columns_used": [
+                "surname_std",
+                "forename1_std",
+                "forename2_std",
+                "forename3_std",
+                "forename4_std",
+                "forename5_std"
+            ],
+            "num_levels": 4,
+            "term_frequency_adjustments": true,
+            "u_probabilities": [
+                0.9971712511113121,
+                0.0019696190108295735,
+                0.00042362154368158505,
+                0.0004355083341766884
+            ],
+            "fix_u_probabilities": true,
+            "gamma_index": 0,
+            "data_type": "string",
+            "fix_m_probabilities": false,
+            "m_probabilities": [
+                0.06656946986913681,
+                0.13804985582828522,
+                0.004958849400281906,
+                0.7904218435287476
+            ]
+        },
+        {
+            "custom_name": "forename1_std",
+            "case_expression": "case\n    when forename1_std_l is null or forename1_std_r is null then -1\n    when jaro_winkler_sim(forename1_std_l, forename1_std_r) >= 1.0 then 3\n    when (jaro_winkler_sim(ifnull(forename1_std_l, '1234abcd5678'), ifnull(surname_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(forename1_std_l, '1234abcd5678'), ifnull(forename2_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(forename1_std_l, '1234abcd5678'), ifnull(forename3_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(forename1_std_l, '1234abcd5678'), ifnull(forename4_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(forename1_std_l, '1234abcd5678'), ifnull(forename5_std_r, '987pqrxyz654')) >= 1.0) then 2\n    \n        when Dmetaphone(forename1_std_l) = Dmetaphone(forename1_std_r) then 1\n        when DmetaphoneAlt(forename1_std_l) = DmetaphoneAlt(forename1_std_r) then 1\n        \n    when jaro_winkler_sim(forename1_std_l, forename1_std_r) >= 0.88 then 1\n    else 0 end  as gamma_forename1_std",
+            "custom_columns_used": [
+                "surname_std",
+                "forename1_std",
+                "forename2_std",
+                "forename3_std",
+                "forename4_std",
+                "forename5_std"
+            ],
+            "num_levels": 4,
+            "term_frequency_adjustments": true,
+            "u_probabilities": [
+                0.9861510467755655,
+                0.008212818823906265,
+                0.0007866608851084375,
+                0.004849473515419766
+            ],
+            "fix_u_probabilities": true,
+            "gamma_index": 1,
+            "data_type": "string",
+            "fix_m_probabilities": false,
+            "m_probabilities": [
+                0.16702039539813995,
+                0.15996557474136353,
+                0.005503946915268898,
+                0.6675100922584534
+            ]
+        },
+        {
+            "custom_name": "forename2_std",
+            "case_expression": "case\n    when forename2_std_l is null or forename2_std_r is null then -1\n    when jaro_winkler_sim(forename2_std_l, forename2_std_r) >= 1.0 then 3\n    when (jaro_winkler_sim(ifnull(forename2_std_l, '1234abcd5678'), ifnull(surname_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(forename2_std_l, '1234abcd5678'), ifnull(forename1_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(forename2_std_l, '1234abcd5678'), ifnull(forename3_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(forename2_std_l, '1234abcd5678'), ifnull(forename4_std_r, '987pqrxyz654')) >= 1.0 OR jaro_winkler_sim(ifnull(forename2_std_l, '1234abcd5678'), ifnull(forename5_std_r, '987pqrxyz654')) >= 1.0) then 2\n    \n        when Dmetaphone(forename2_std_l) = Dmetaphone(forename2_std_r) then 1\n        when DmetaphoneAlt(forename2_std_l) = DmetaphoneAlt(forename2_std_r) then 1\n        \n    when jaro_winkler_sim(forename2_std_l, forename2_std_r) >= 0.88 then 1\n    else 0 end  as gamma_forename2_std",
+            "custom_columns_used": [
+                "surname_std",
+                "forename1_std",
+                "forename2_std",
+                "forename3_std",
+                "forename4_std",
+                "forename5_std"
+            ],
+            "num_levels": 4,
+            "u_probabilities": [
+                0.9872421615380498,
+                0.005356797479076685,
+                0.004940988026833403,
+                0.00246005295603998
+            ],
+            "fix_u_probabilities": true,
+            "gamma_index": 2,
+            "data_type": "string",
+            "term_frequency_adjustments": false,
+            "fix_m_probabilities": false,
+            "m_probabilities": [
+                0.292392195657943,
+                0.05410483409852429,
+                0.057499913716735206,
+                0.5947085612944165
+            ]
+        },
+        {
+            "col_name": "occupation",
+            "num_levels": 2,
+            "u_probabilities": [
+                0.9600009107589518,
+                0.03999908924104819
+            ],
+            "fix_u_probabilities": true,
+            "gamma_index": 3,
+            "data_type": "string",
+            "term_frequency_adjustments": false,
+            "fix_m_probabilities": false,
+            "case_expression": "case\n    when occupation_l is null or occupation_r is null then -1\n    when occupation_l = occupation_r then 1\n    else 0 end  as gamma_occupation",
+            "m_probabilities": [
+                0.07640267163515091,
+                0.9235973358154297
+            ]
+        },
+        {
+            "col_name": "dob",
+            "case_expression": "case\n    when dob_l is null or dob_r is null then -1\n    when dob_l = dob_r  and substr(dob_l, -5) = '01-01'  then 4\n    when dob_l = dob_r  then 5\n    when levenshtein(dob_l, dob_r) <= 1 then 3\n    when datediff(dob_l, dob_r) <= 365 then 2\n    when datediff(dob_l, dob_r) <= 10*365 then 1\n    else 0 end  as gamma_dob",
+            "num_levels": 6,
+            "u_probabilities": [
+                0.5111617247898816,
+                0.055217439032037054,
+                0.42925922399586586,
+                0.0040772546365669335,
+                0.00026642271100208066,
+                1.7934834646417625e-05
+            ],
+            "m_probabilities": [
+                0.014713944867253304,
+                0.0028195262420922518,
+                0.009494210593402386,
+                0.29813751578330994,
+                0.1634393185377121,
+                0.5113955140113831
+            ],
+            "fix_u_probabilities": true,
+            "gamma_index": 1,
+            "data_type": "string",
+            "term_frequency_adjustments": false,
+            "fix_m_probabilities": false
+        },
+        {
+            "custom_name": "custom_postcode_distance_comparison",
+            "custom_columns_used": [
+                "postcode",
+                "lat_lng",
+                "birth_place"
+            ],
+            "case_expression": "case\n    when (postcode_l is null or postcode_r is null) and (birth_place_l is null or birth_place_r is null) then -1\n    when postcode_l = postcode_r then 5\n    when  (cast(atan2(sqrt(\n    (\n    pow(sin(radians(lat_lng_r['lat'] - lat_lng_l['lat']))/2, 2) +\n    cos(radians(lat_lng_l['lat'])) * cos(radians(lat_lng_r['lat'])) *\n    pow(sin(radians(lat_lng_r['long'] - lat_lng_l['long'])/2),2)\n    )\n    ), sqrt(-1*\n    (\n    pow(sin(radians(lat_lng_r['lat'] - lat_lng_l['lat']))/2, 2) +\n    cos(radians(lat_lng_l['lat'])) * cos(radians(lat_lng_r['lat'])) *\n    pow(sin(radians(lat_lng_r['long'] - lat_lng_l['long'])/2),2)\n    )\n     + 1)) * 12742 as float) < 5) then 4\n    when  (cast(atan2(sqrt(\n    (\n    pow(sin(radians(lat_lng_r['lat'] - lat_lng_l['lat']))/2, 2) +\n    cos(radians(lat_lng_l['lat'])) * cos(radians(lat_lng_r['lat'])) *\n    pow(sin(radians(lat_lng_r['long'] - lat_lng_l['long'])/2),2)\n    )\n    ), sqrt(-1*\n    (\n    pow(sin(radians(lat_lng_r['lat'] - lat_lng_l['lat']))/2, 2) +\n    cos(radians(lat_lng_l['lat'])) * cos(radians(lat_lng_r['lat'])) *\n    pow(sin(radians(lat_lng_r['long'] - lat_lng_l['long'])/2),2)\n    )\n     + 1)) * 12742 as float) < 50)  then 3\n    when (birth_place_l = birth_place_r) then 2\n    when  (cast(atan2(sqrt(\n    (\n    pow(sin(radians(lat_lng_r['lat'] - lat_lng_l['lat']))/2, 2) +\n    cos(radians(lat_lng_l['lat'])) * cos(radians(lat_lng_r['lat'])) *\n    pow(sin(radians(lat_lng_r['long'] - lat_lng_l['long'])/2),2)\n    )\n    ), sqrt(-1*\n    (\n    pow(sin(radians(lat_lng_r['lat'] - lat_lng_l['lat']))/2, 2) +\n    cos(radians(lat_lng_l['lat'])) * cos(radians(lat_lng_r['lat'])) *\n    pow(sin(radians(lat_lng_r['long'] - lat_lng_l['long'])/2),2)\n    )\n     + 1)) * 12742 as float) < 150)  then 1\n    else 0\n    end  as gamma_custom_postcode_distance_comparison",
+            "num_levels": 6,
+            "u_probabilities": [
+                0.7814696546442409,
+                0.15750782424108997,
+                0.0015183169385883056,
+                0.05392849897427392,
+                0.0055651875102442705,
+                1.0517691562742547e-05
+            ],
+            "m_probabilities": [
+                0.03330593928694725,
+                0.0028301486745476723,
+                0.1853829026222229,
+                0.06986348330974579,
+                0.09479385614395142,
+                0.613823652267456
+            ],
+            "fix_u_probabilities": true,
+            "gamma_index": 2,
+            "data_type": "string",
+            "term_frequency_adjustments": false,
+            "fix_m_probabilities": false
+        }
+    ],
+    "additional_columns_to_retain": [
+        "id"
+    ],
+    "em_convergence": 0.001,
+    "max_iterations": 100,
+    "retain_intermediate_calculation_columns": false,
+    "retain_matching_columns": false,
+    "source_dataset_column_name": "source_dataset",
+    "proportion_of_matches": 9.822430887323087e-08
+}
