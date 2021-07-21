@@ -64,4 +64,14 @@ uk_citizens_max_groupsize_20 = {
         "allocated_capacity": 8,
         "version": "v01",
     },
+    "graph_analytics/person/uk_citizens_max_groupsize_20/basic/01_graph_analytics": {
+        "role": ROLE,
+        "snapshot_date": "2021-01-01",
+        "allocated_capacity": 5,
+        "version": "v01",
+        "list_python_modules": ["splink-graph==0.4.9", "pyarrow==0.15.1", "numpy==1.19.5"],
+        "additional_job_args": {
+            "--conf": "spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT=1"
+        },
+    },
 }
