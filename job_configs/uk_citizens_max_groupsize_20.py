@@ -64,4 +64,11 @@ uk_citizens_max_groupsize_20 = {
         "allocated_capacity": 8,
         "version": "v01",
     },
+    "graph_analytics/person/uk_citizens_max_groupsize_20/basic/01_graph_analytics": {
+        "role": ROLE,
+        "snapshot_date": "2021-01-01",
+        "allocated_capacity": 5,
+        "version": "v01",
+        "list_python_modules": ["splink-graph==0.4.9"],
+    },
 }

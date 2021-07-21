@@ -11,6 +11,7 @@ BUCKET_MAIN_ROOT = os.path.join("s3://", BUCKET_MAIN)
 
 
 CLUSTER_ROOT = "clusters"
+GRAPH_ANALYTICS_ROOT = "graph_analytics"
 EDGES_ROOT = "edges"
 TRAINING_ROOT = "model_training"
 
@@ -450,6 +451,51 @@ def get_cluster_path(
     return path
 
 
+def get_graph_analytics_path(
+    entity,
+    dataset_or_datasets,
+    job_name,
+    snapshot_date,
+    version,
+    trial_run=False,
+):
+    """Get full s3 path to graph_analytics data
+
+    Args:
+        entity (str): An entity type, for example 'person', or 'journey'
+        datasets (arr): An array of one or more dataset - e.g. ['mags_hocas', 'crown_xhibit']
+        job_name (str): The name of the job
+        snapshot_date (str): A snapshot date, for example '2020-03-21'
+        version (str): The version, to account for re-running jobs when codebase is updated
+        trial_run (bool): If a trial run, output to a different directory to avoid overwriting real data
+
+    """
+
+    _validate_all(**locals())
+    datasets = _standardise_dataset_or_datasets_to_arr(dataset_or_datasets)
+    datasets_path = _datasets_to_path(datasets)
+
+    if len(datasets) == 1:
+        snapshot_date_colname = "snapshot_date"
+    else:
+        snapshot_date_colname = "linking_snapshot_date"
+
+    tr_path = _get_trial_run_path_string(trial_run)
+
+    path = os.path.join(
+        BUCKET_MAIN_ROOT,
+        tr_path,
+        GRAPH_ANALYTICS_ROOT,
+        entity,
+        f"version={version}",
+        f"input_datasets={datasets_path}",
+        f"job_name={job_name}",
+        f"{snapshot_date_colname}={snapshot_date}",
+    )
+
+    return path
+
+
 def get_qa_paths(
     entity,
     dataset_or_datasets,
@@ -561,6 +607,7 @@ def parse_path(path):
         "model_training": _parse_training_generation,
         "edge_generation": _parse_edge_generation,
         "cluster_generation": _parse_cluster_generation,
+        "graph_analytics": _parse_graph_analytics,
         "node_generation": _parse_nodes_generation,
         "qa": _parse_qa,
         "other_glue_jobs": _parse_other_glue_jobs,
@@ -651,6 +698,19 @@ def _parse_cluster_generation(path):
     return parsed_args
 
 
+def _parse_graph_analytics(path):
+    parts = path.split("/")
+    parsed_args = {}
+    parsed_args["entity"] = parts[1]
+    parsed_args["dataset_or_datasets"] = _get_datasets_from_string(parts[2])
+    parsed_args["job_name"] = parts[3]
+
+    if len(parsed_args["dataset_or_datasets"]) == 1:
+        parsed_args["dataset"] = parsed_args["dataset_or_datasets"][0]
+
+    return parsed_args
+
+
 def _get_arguments_for_this_function(this_fn, **args):
     # Note that not all arguments will necessarily exist
     varnames = inspect.getfullargspec(this_fn)[0]
@@ -668,6 +728,7 @@ def _get_all_paths(**args):
         "tempfiles": _get_tempfiles_paths,
         "clusters_path": get_cluster_path,
         "qa": get_qa_paths,
+        "graph_analytics_path": get_graph_analytics_path,
     }
 
     output_dict = {}
@@ -704,7 +765,7 @@ def get_paths_from_kwargs(**kwargs):
 
 if __name__ == "__main__":
 
-    job_path = "node_generation/source_nodes/_uk_citizens_max_groupsize_20/person/01_generate_source_nodes"
+    job_path = "graph_analytics/person/uk_citizens_max_groupsize_20/basic/01_graph_analytics/job.py"
     paths = get_paths_from_job_path(job_path, "2021-01-01", "v01", trial_run=True)
     print(job_path)
     print(json.dumps(paths, indent=4))

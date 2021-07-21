@@ -55,13 +55,10 @@ for k, v in paths.items():
 
 
 # # Source nodes is the original list of people - no guarantee the edges will include every person.
-df_source_nodes = spark.read.parquet(paths["standardised_nodes_path"])
-
-df_source_nodes = df_source_nodes.withColumn("source_dataset", f.lit("synthetic-data"))
+df_source_nodes = spark.read.parquet(paths["source_nodes_path"])
 
 # Only need the list of IDs for the cluster output, will not pull in any details
 df_source_nodes = df_source_nodes.select(["unique_id", "source_dataset"])
-df_source_nodes = df_source_nodes.withColumnRenamed("unique_id", "id")
 
 df_source_nodes = df_source_nodes.withColumn("commit_hash", f.lit(args["commit_hash"]))
 
