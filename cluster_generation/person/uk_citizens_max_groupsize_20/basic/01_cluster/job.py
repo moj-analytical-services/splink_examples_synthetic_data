@@ -59,6 +59,7 @@ df_source_nodes = spark.read.parquet(paths["source_nodes_path"])
 
 # Only need the list of IDs for the cluster output, will not pull in any details
 df_source_nodes = df_source_nodes.select(["unique_id", "source_dataset"])
+df_source_nodes = df_source_nodes.withColumnRenamed("unique_id", "id")
 
 df_source_nodes = df_source_nodes.withColumn("commit_hash", f.lit(args["commit_hash"]))
 
