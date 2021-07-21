@@ -138,6 +138,6 @@ settings = {
             "m_probabilities": [6, 5, 4, 3, 2, 1],
         },
     ],
-    "additional_columns_to_retain": ["id"],
+    "additional_columns_to_retain": ["cluster", "source_dataset"],
     "em_convergence": 0.01,
 }

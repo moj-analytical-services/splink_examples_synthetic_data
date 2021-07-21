@@ -66,8 +66,6 @@ df = spark.read.parquet(paths["source_nodes_path"])
 keep = [c for c in df.columns if not c.startswith("num_")]
 df = df.select(keep)
 
-df = df.withColumn("unique_id", f.monotonically_increasing_id())
-
 df = standardise_names(df, ["full_name"])
 
 

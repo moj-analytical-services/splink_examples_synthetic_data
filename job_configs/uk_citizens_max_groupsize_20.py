@@ -58,4 +58,10 @@ uk_citizens_max_groupsize_20 = {
             "--conf": "spark.jars.packages=graphframes:graphframes:0.6.0-spark2.3-s_2.11"
         },
     },
+    "qa/compute_accuracy/person/uk_citizens_max_groupsize_20/basic": {
+        "role": ROLE,
+        "snapshot_date": "2021-01-01",
+        "allocated_capacity": 8,
+        "version": "v01",
+    },
 }

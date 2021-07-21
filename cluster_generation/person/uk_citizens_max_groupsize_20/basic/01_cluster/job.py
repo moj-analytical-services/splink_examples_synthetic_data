@@ -16,7 +16,7 @@ sc = SparkContext()
 glue_context = GlueContext(sc)
 glue_logger = glue_context.get_logger()
 
-sc.setCheckpointDir("s3://alpha-splink-synthetic-data/v4/temp_files/checkpointdir/")
+sc.setCheckpointDir("s3://alpha-splink-synthetic-data/temp_files/checkpointdir/")
 
 spark = glue_context.spark_session
 

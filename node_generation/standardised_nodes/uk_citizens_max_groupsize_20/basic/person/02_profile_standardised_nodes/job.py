@@ -88,7 +88,7 @@ write_local_file_to_s3(chart_name, col_val_s3_path, overwrite=True)
 # This has been run so doesn't need to be run again
 cols_to_profile = [
     "uncorrupted_record",
-    "id",
+    "cluster",
     "dob",
     "birth_place",
     "gender",
@@ -100,6 +100,7 @@ cols_to_profile = [
     "forename3_std",
     "forename4_std",
     "forename5_std",
+    "postcode",
     "outward_postcode_std",
     "inward_postcode_std",
     "dob_year_month",
