@@ -113,10 +113,14 @@ out_path = os.path.join(out_path_root, "all_cluster_metrics")
 cluster_all_stats_df = cluster_all_stats_df.repartition(1)
 cluster_all_stats_df.write.mode("overwrite").parquet(out_path)
 
+custom_log.info(f"Written cluster_all_stats_df")
+
 node_df = eigencentrality(df, distance_colname="weight")
 out_path = os.path.join(out_path_root, "node_metrics")
 node_df = node_df.repartition(1)
 node_df.write.mode("overwrite").parquet(out_path)
+
+custom_log.info(f"Written node_df")
 
 
 edge_metrics_df = edgebetweeness(df, distance_col="weight")
@@ -136,9 +140,23 @@ from
 edge_metrics_df as em
 left join df_edges as e
 on
-(em.src = e.unique_id_l and em.dst = e.unique_id_r)
-or
-(em.src = e.unique_id_r and em.dst = e.unique_id_l)
+em.src = e.unique_id_l and em.dst = e.unique_id_r
+
+union all
+
+
+select
+    em.*,
+    e.match_score_norm,
+    e.tf_adjusted_match_prob,
+    e.unique_id_l,
+    e.unique_id_r
+
+from
+edge_metrics_df as em
+left join df_edges as e
+on
+em.src = e.unique_id_r and em.dst = e.unique_id_l
 
 """
 
@@ -146,3 +164,5 @@ edge_metrics_df = spark.sql(sql)
 edge_metrics_df = edge_metrics_df.repartition(10)
 out_path = os.path.join(out_path_root, "edge_metrics")
 edge_metrics_df.write.mode("overwrite").parquet(out_path)
+
+custom_log.info(f"Written edge_metrics_df")
