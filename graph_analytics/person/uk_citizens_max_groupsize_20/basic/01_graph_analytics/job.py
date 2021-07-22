@@ -6,6 +6,8 @@ from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 import json
 
+from normalise_prob import probability_to_normalised_bayes_factor
+
 import pyspark.sql.functions as f
 
 from constants import get_paths_from_job_path
@@ -60,6 +62,9 @@ for k, v in paths.items():
 df_edges = spark.read.parquet(paths["edges_path"])
 df_edges.createOrReplaceTempView("df_edges")
 
+df_edges = probability_to_normalised_bayes_factor(df_edges, "tf_adjusted_match_prob")
+
+
 df_clusters = spark.read.parquet(paths["clusters_path"])
 df_clusters.createOrReplaceTempView("df_clusters")
 
@@ -71,7 +76,7 @@ sql = """
 select
     unique_id_l as src,
     unique_id_r as dst,
-    tf_adjusted_match_prob as weight,
+    match_score_norm as weight,
     df_c_1.cluster_medium as cluster_id
 from
     df_edges
