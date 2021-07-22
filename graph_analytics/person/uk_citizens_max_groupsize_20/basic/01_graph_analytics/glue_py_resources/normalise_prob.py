@@ -12,6 +12,8 @@ def probability_to_normalised_bayes_factor(
     log2_bf = f"log2({prob_colname}/(1-{prob_colname}))"
     expr = f"""
     case
+        when {prob_colname} = 0.0 then -40
+        when {prob_colname} = 1.0 then 40
         when {log2_bf} > 40 then 40
         when {log2_bf} < -40 then -40
         else {log2_bf}

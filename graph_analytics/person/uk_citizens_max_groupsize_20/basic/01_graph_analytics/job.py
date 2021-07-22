@@ -60,10 +60,10 @@ for k, v in paths.items():
 
 
 df_edges = spark.read.parquet(paths["edges_path"])
-df_edges.createOrReplaceTempView("df_edges")
+
 
 df_edges = probability_to_normalised_bayes_factor(df_edges, "tf_adjusted_match_prob")
-
+df_edges.createOrReplaceTempView("df_edges")
 
 df_clusters = spark.read.parquet(paths["clusters_path"])
 df_clusters.createOrReplaceTempView("df_clusters")
@@ -120,6 +120,29 @@ node_df.write.mode("overwrite").parquet(out_path)
 
 
 edge_metrics_df = edgebetweeness(df, distance_col="weight")
+
+df_edges.createOrReplaceTempView("df_edges")
+edge_metrics_df.createOrReplaceTempView("edge_metrics_df")
+
+sql = """
+select
+    em.*,
+    e.match_score_norm,
+    e.tf_adjusted_match_prob,
+    e.unique_id_l,
+    e.unique_id_r
+
+from
+edge_metrics_df as em
+left join df_edges as e
+on
+(em.src = e.unique_id_l and em.dst = e.unique_id_r)
+or
+(em.src = e.unique_id_r and em.dst = e.unique_id_l)
+
+"""
+
+edge_metrics_df = spark.sql(sql)
 edge_metrics_df = edge_metrics_df.repartition(10)
 out_path = os.path.join(out_path_root, "edge_metrics")
 edge_metrics_df.write.mode("overwrite").parquet(out_path)
