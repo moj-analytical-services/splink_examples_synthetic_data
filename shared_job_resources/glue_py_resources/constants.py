@@ -523,6 +523,7 @@ def get_qa_paths(
         "sample_for_labelling",
         "cached_potential_matches_for_labelling",
         "labels_with_scores",
+        "cluster_truth",
     ]
     for f in folders:
         path = os.path.join(
