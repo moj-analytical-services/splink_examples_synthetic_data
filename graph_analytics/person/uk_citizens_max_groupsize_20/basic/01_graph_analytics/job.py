@@ -14,7 +14,11 @@ from constants import get_paths_from_job_path
 
 from custom_logger import get_custom_logger
 
-from splink_graph.cluster_metrics import cluster_basic_stats, cluster_main_stats
+from splink_graph.cluster_metrics import (
+    cluster_basic_stats,
+    cluster_main_stats,
+    cluster_eb_modularity,
+)
 from splink_graph.node_metrics import eigencentrality
 from splink_graph.edge_metrics import edgebetweeness
 
@@ -102,9 +106,12 @@ cluster_basic_stats_df = cluster_basic_stats(df)
 
 cluster_main_stats_df = cluster_main_stats(df)
 
+
+cluster_eb_modularity_df = cluster_eb_modularity(df, distance_colname="weight")
+
 cluster_all_stats_df = cluster_basic_stats_df.join(
     cluster_main_stats_df, on=["cluster_id"], how="left"
-)
+).join(cluster_eb_modularity_df, on=["cluster_id"], how="left")
 
 
 out_path_root = paths["graph_analytics_path"]
@@ -115,54 +122,54 @@ cluster_all_stats_df.write.mode("overwrite").parquet(out_path)
 
 custom_log.info(f"Written cluster_all_stats_df")
 
-node_df = eigencentrality(df, distance_colname="weight")
-out_path = os.path.join(out_path_root, "node_metrics")
-node_df = node_df.repartition(1)
-node_df.write.mode("overwrite").parquet(out_path)
+# node_df = eigencentrality(df, distance_colname="weight")
+# out_path = os.path.join(out_path_root, "node_metrics")
+# node_df = node_df.repartition(1)
+# node_df.write.mode("overwrite").parquet(out_path)
 
-custom_log.info(f"Written node_df")
-
-
-edge_metrics_df = edgebetweeness(df, distance_col="weight")
-
-df_edges.createOrReplaceTempView("df_edges")
-edge_metrics_df.createOrReplaceTempView("edge_metrics_df")
-
-sql = """
-select
-    em.*,
-    e.match_score_norm,
-    e.tf_adjusted_match_prob,
-    e.unique_id_l,
-    e.unique_id_r
-
-from
-edge_metrics_df as em
-left join df_edges as e
-on
-em.src = e.unique_id_l and em.dst = e.unique_id_r
-
-union all
+# custom_log.info(f"Written node_df")
 
 
-select
-    em.*,
-    e.match_score_norm,
-    e.tf_adjusted_match_prob,
-    e.unique_id_l,
-    e.unique_id_r
+# edge_metrics_df = edgebetweeness(df, distance_col="weight")
 
-from
-edge_metrics_df as em
-left join df_edges as e
-on
-em.src = e.unique_id_r and em.dst = e.unique_id_l
+# df_edges.createOrReplaceTempView("df_edges")
+# edge_metrics_df.createOrReplaceTempView("edge_metrics_df")
 
-"""
+# sql = """
+# select
+#     em.*,
+#     e.match_score_norm,
+#     e.tf_adjusted_match_prob,
+#     e.unique_id_l,
+#     e.unique_id_r
 
-edge_metrics_df = spark.sql(sql)
-edge_metrics_df = edge_metrics_df.repartition(10)
-out_path = os.path.join(out_path_root, "edge_metrics")
-edge_metrics_df.write.mode("overwrite").parquet(out_path)
+# from
+# edge_metrics_df as em
+# left join df_edges as e
+# on
+# em.src = e.unique_id_l and em.dst = e.unique_id_r
 
-custom_log.info(f"Written edge_metrics_df")
+# union all
+
+
+# select
+#     em.*,
+#     e.match_score_norm,
+#     e.tf_adjusted_match_prob,
+#     e.unique_id_l,
+#     e.unique_id_r
+
+# from
+# edge_metrics_df as em
+# left join df_edges as e
+# on
+# em.src = e.unique_id_r and em.dst = e.unique_id_l
+
+# """
+
+# edge_metrics_df = spark.sql(sql)
+# edge_metrics_df = edge_metrics_df.repartition(10)
+# out_path = os.path.join(out_path_root, "edge_metrics")
+# edge_metrics_df.write.mode("overwrite").parquet(out_path)
+
+# custom_log.info(f"Written edge_metrics_df")
