@@ -14,7 +14,11 @@ from constants import get_paths_from_job_path
 
 from custom_logger import get_custom_logger
 
-from splink_graph.cluster_metrics import cluster_basic_stats, cluster_main_stats
+from splink_graph.cluster_metrics import (
+    cluster_basic_stats,
+    cluster_main_stats,
+    cluster_eb_modularity,
+)
 from splink_graph.node_metrics import eigencentrality
 from splink_graph.edge_metrics import edgebetweeness
 
@@ -102,9 +106,12 @@ cluster_basic_stats_df = cluster_basic_stats(df)
 
 cluster_main_stats_df = cluster_main_stats(df)
 
+
+cluster_eb_modularity_df = cluster_eb_modularity(df, distance_colname="weight")
+
 cluster_all_stats_df = cluster_basic_stats_df.join(
     cluster_main_stats_df, on=["cluster_id"], how="left"
-)
+).join(cluster_eb_modularity_df, on=["cluster_id"], how="left")
 
 
 out_path_root = paths["graph_analytics_path"]

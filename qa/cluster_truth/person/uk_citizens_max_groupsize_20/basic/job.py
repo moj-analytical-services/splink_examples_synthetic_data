@@ -242,6 +242,7 @@ final = final.drop("cluster_id")
 cols = list(final.columns)
 cols.insert(0, cols.pop(cols.index("cluster_medium")))
 final = final.select(cols)
+final = final.repartition(1)
 
 
 output_path = paths["cluster_truth_path"]
