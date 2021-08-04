@@ -18,6 +18,9 @@ from splink_graph.cluster_metrics import (
     cluster_basic_stats,
     cluster_main_stats,
     cluster_eb_modularity,
+    cluster_avg_edge_betweenness,
+    number_of_bridges,
+    cluster_connectivity_stats,
 )
 from splink_graph.node_metrics import eigencentrality
 from splink_graph.edge_metrics import edgebetweeness
@@ -31,14 +34,7 @@ spark = glue_context.spark_session
 
 args = getResolvedOptions(
     sys.argv,
-    [
-        "JOB_NAME",
-        "job_path",
-        "snapshot_date",
-        "commit_hash",
-        "trial_run",
-        "version",
-    ],
+    ["JOB_NAME", "job_path", "snapshot_date", "commit_hash", "trial_run", "version",],
 )
 
 trial_run = args["trial_run"] == "true"
@@ -106,12 +102,20 @@ cluster_basic_stats_df = cluster_basic_stats(df)
 
 cluster_main_stats_df = cluster_main_stats(df)
 
+cluster_conn_stats_df = cluster_connectivity_stats(df)
+
+cluster_num_bridges = number_of_bridges(df,distance_colname="weight")
+
+
 
 cluster_eb_modularity_df = cluster_eb_modularity(df, distance_colname="weight")
 
-cluster_all_stats_df = cluster_basic_stats_df.join(
-    cluster_main_stats_df, on=["cluster_id"], how="left"
-).join(cluster_eb_modularity_df, on=["cluster_id"], how="left")
+cluster_all_stats_df = (
+    cluster_basic_stats_df.join(cluster_main_stats_df, on=["cluster_id"], how="left")
+    .join(cluster_eb_modularity_df, on=["cluster_id"], how="left")
+    .join(cluster_conn_stats_df, on=["cluster_id"], how="left")
+    .join(cluster_num_bridges, on=["cluster_id"], how="left")
+)
 
 
 out_path_root = paths["graph_analytics_path"]
@@ -122,7 +126,7 @@ cluster_all_stats_df.write.mode("overwrite").parquet(out_path)
 
 custom_log.info(f"Written cluster_all_stats_df")
 
-node_df = eigencentrality(df, distance_colname="weight")
+node_df = eigencentrality(df)
 out_path = os.path.join(out_path_root, "node_metrics")
 node_df = node_df.repartition(1)
 node_df.write.mode("overwrite").parquet(out_path)
