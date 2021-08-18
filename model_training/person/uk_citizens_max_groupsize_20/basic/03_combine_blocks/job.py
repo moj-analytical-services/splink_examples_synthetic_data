@@ -112,8 +112,11 @@ global_settings_dict["blocking_rules"] = [
     "l.outward_postcode_std = r.outward_postcode_std and l.dob = r.dob",
     "l.forename1_dm = r.forename1_dm and l.surname_dm = r.surname_dm and l.forename2_std = r.forename2_std",
     "l.forename1_dm = r.forename1_dm and l.surname_dm = r.surname_dm and l.birth_place = r.birth_place",
+    "l.forename1_dm = r.forename1_dm and l.surname_dm = r.surname_dm",
+    "l.forename1_dm =  r.surname_dm and l.surname_dm = r.forename1_dm and l.dob_year = r.dob_year",
+    "l.forename1_dm =  r.surname_dm and l.surname_dm = r.forename1_dm",
+    "l.outward_postcode_std = r.outward_postcode_std and l.surname_dm = r.surname_dm  and l.dob_year = r.dob_year",
 ]
-
 
 path = os.path.join(paths["training_combined_model_path"], "combined_settings.json")
 write_json_to_s3(global_settings_dict, path)
