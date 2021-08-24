@@ -126,12 +126,12 @@ cluster_all_stats_df.write.mode("overwrite").parquet(out_path)
 
 custom_log.info(f"Written cluster_all_stats_df")
 
-node_df = eigencentrality(df)
-out_path = os.path.join(out_path_root, "node_metrics")
-node_df = node_df.repartition(1)
-node_df.write.mode("overwrite").parquet(out_path)
+#node_df = eigencentrality(df)
+#out_path = os.path.join(out_path_root, "node_metrics")
+#node_df = node_df.repartition(1)
+#node_df.write.mode("overwrite").parquet(out_path)
 
-custom_log.info(f"Written node_df")
+#custom_log.info(f"Written node_df")
 
 
 edge_metrics_df = edgebetweeness(df, distance_col="weight")
