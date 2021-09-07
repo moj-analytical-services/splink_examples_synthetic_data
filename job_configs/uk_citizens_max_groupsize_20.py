@@ -76,11 +76,12 @@ uk_citizens_max_groupsize_20 = {
         "allocated_capacity": 5,
         "version": "v01",
         "list_python_modules": [
-            "splink-graph==0.4.15",
+            "networkx==2.5.1",
+            "gensim==3.8.3",
+            "splink-graph==0.4.19",
             "pyarrow==0.15.1",
             "numpy==1.19.5",
             "graphframes==0.6.0",
-            "networkx==2.5.1"
         ],
         "additional_job_args": {
             "--conf": "spark.executorEnv.ARROW_PRE_0_15_IPC_FORMAT=1"
