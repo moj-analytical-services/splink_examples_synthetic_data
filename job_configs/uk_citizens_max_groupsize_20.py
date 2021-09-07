@@ -78,7 +78,7 @@ uk_citizens_max_groupsize_20 = {
         "list_python_modules": [
             "networkx==2.5.1",
             "gensim==3.8.3",
-            "splink-graph==0.4.19",
+            "splink-graph==0.4.20",
             "pyarrow==0.15.1",
             "numpy==1.19.5",
             "graphframes==0.6.0",

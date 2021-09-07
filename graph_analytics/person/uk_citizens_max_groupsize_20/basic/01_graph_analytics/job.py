@@ -21,6 +21,8 @@ from splink_graph.cluster_metrics import (
     cluster_avg_edge_betweenness,
     number_of_bridges,
     cluster_connectivity_stats,
+    cluster_assortativity,
+    
 )
 from splink_graph.node_metrics import eigencentrality
 from splink_graph.edge_metrics import edgebetweeness
@@ -106,7 +108,9 @@ cluster_conn_stats_df = cluster_connectivity_stats(df)
 
 cluster_num_bridges = number_of_bridges(df,distance_colname="weight")
 
+cluster_assort_df = cluster_assortativity(df)
 
+cluster_avg_eb_df = cluster_avg_edge_betweenness(df,distance_colname="weight")
 
 cluster_eb_modularity_df = cluster_eb_modularity(df, distance_colname="weight")
 
@@ -115,6 +119,8 @@ cluster_all_stats_df = (
     .join(cluster_eb_modularity_df, on=["cluster_id"], how="left")
     .join(cluster_conn_stats_df, on=["cluster_id"], how="left")
     .join(cluster_num_bridges, on=["cluster_id"], how="left")
+    .join(cluster_assort_df, on=["cluster_id"], how="left")
+    .join(cluster_avg_eb_df, on=["cluster_id"], how="left")
 )
 
 
