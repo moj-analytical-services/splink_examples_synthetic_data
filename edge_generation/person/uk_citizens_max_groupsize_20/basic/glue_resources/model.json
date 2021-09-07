@@ -11,7 +11,7 @@
         "l.forename1_dm = r.forename1_dm and l.surname_dm = r.surname_dm",
         "l.forename1_dm =  r.surname_dm and l.surname_dm = r.forename1_dm and l.dob_year = r.dob_year",
         "l.forename1_dm =  r.surname_dm and l.surname_dm = r.forename1_dm",
-        "l.outward_postcode_std = r.outward_postcode_std and l.surname_dm = r.surname_dm  and l.dob_year = r.dob_year",
+        "l.outward_postcode_std = r.outward_postcode_std and l.surname_dm = r.surname_dm  and l.dob_year = r.dob_year"
     ],
     "comparison_columns": [
         {

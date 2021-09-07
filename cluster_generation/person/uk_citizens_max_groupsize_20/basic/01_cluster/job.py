@@ -79,7 +79,7 @@ where tf_adjusted_match_prob > {threshold}
 """
 
 df_edges_high = spark.sql(sql.format(threshold=0.999))
-df_edges_medium = spark.sql(sql.format(threshold=0.95))
+df_edges_medium = spark.sql(sql.format(threshold=0.70))
 df_edges_low = spark.sql(sql.format(threshold=0.5))
 
 
