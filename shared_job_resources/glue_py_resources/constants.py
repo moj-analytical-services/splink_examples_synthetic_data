@@ -457,6 +457,8 @@ def get_graph_analytics_path(
     job_name,
     snapshot_date,
     version,
+    metric_entity_type,
+    cluster_colname,
     trial_run=False,
 ):
     """Get full s3 path to graph_analytics data
@@ -467,6 +469,8 @@ def get_graph_analytics_path(
         job_name (str): The name of the job
         snapshot_date (str): A snapshot date, for example '2020-03-21'
         version (str): The version, to account for re-running jobs when codebase is updated
+        metric_entity_type (str): The type of metric, e.g. edge, node, cluster
+        cluster_colname(str): The name of the cluster column e.g. cluster_medium
         trial_run (bool): If a trial run, output to a different directory to avoid overwriting real data
 
     """
@@ -490,6 +494,8 @@ def get_graph_analytics_path(
         f"version={version}",
         f"input_datasets={datasets_path}",
         f"job_name={job_name}",
+        f"metric_entity_type={metric_entity_type}",
+        f"cluster_colname={cluster_colname}",
         f"{snapshot_date_colname}={snapshot_date}",
     )
 
@@ -767,6 +773,20 @@ def get_paths_from_kwargs(**kwargs):
 if __name__ == "__main__":
 
     job_path = "graph_analytics/person/uk_citizens_max_groupsize_20/basic/01_graph_analytics/job.py"
-    paths = get_paths_from_job_path(job_path, "2021-01-01", "v01", trial_run=True)
-    print(job_path)
-    print(json.dumps(paths, indent=4))
+    parsed_args = parse_path(job_path)
+
+    gap = get_graph_analytics_path(
+        parsed_args["entity"],
+        parsed_args["dataset_or_datasets"],
+        parsed_args["job_name"],
+        "2021-01-01",
+        "v01",
+        "cluster",
+        "cluster_medium",
+        trial_run=False,
+    )
+
+    # paths = get_paths_from_job_path(job_path, "2021-01-01", "v01", trial_run=True)
+
+    print(gap)
+    # print(json.dumps(paths, indent=4))

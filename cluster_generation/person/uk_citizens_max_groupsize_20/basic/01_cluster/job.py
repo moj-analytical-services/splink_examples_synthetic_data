@@ -53,10 +53,6 @@ for k, v in paths.items():
 # # Source nodes is the original list of people - no guarantee the edges will include every person.
 df_source_nodes = spark.read.parquet(paths["source_nodes_path"])
 
-# Only need the list of IDs for the cluster output, will not pull in any details
-df_source_nodes = df_source_nodes.select(["unique_id", "source_dataset"])
-
-
 df_source_nodes = df_source_nodes.withColumn("commit_hash", f.lit(args["commit_hash"]))
 
 df_edges = spark.read.parquet(paths["edges_path"])
@@ -65,23 +61,44 @@ df_edges.createOrReplaceTempView("df_edges")
 df_source_nodes.createOrReplaceTempView("df_source_nodes")
 
 
+cluster_colnames = [
+    "cluster_very_very_low",
+    "cluster_very_low",
+    "cluster_quite_low",
+    "cluster_low",
+    "cluster_medium",
+    "cluster_high",
+    "cluster_very_high",
+]
 results = clusters_at_thresholds(
     df_source_nodes,
     df_edges,
-    [0.05, 0.5, 0.8, 0.99, 0.999],
-    [
-        "cluster_very_low",
-        "cluster_low",
-        "cluster_medium",
-        "cluster_high",
-        "cluster_very_high",
-    ],
+    [0.01, 0.1, 0.25, 0.5, 0.8, 0.99, 0.999],
+    cluster_colnames,
     spark,
     join_node_details=True,
     score_colname="tf_adjusted_match_prob",
 )
 
-results = results.repartition(50)
+
+results = results.repartition(10)
 results.persist()
 results.write.mode("overwrite").parquet(paths["clusters_path"])
+
+
+results = spark.read.parquet(paths["clusters_path"])
+results.persist()
 results.createOrReplaceTempView("results")
+
+
+for col in cluster_colnames:
+    sql = """
+    select {cluster_type}, count(*) as count_in_cluster, '{cluster_type}' as cluster_type
+    from results
+    group by {cluster_type}
+    order by count(*) desc
+    limit 5
+    """
+
+    df = spark.sql(sql.format(cluster_type=col))
+    custom_log.info(df._jdf.showString(5, 20, False))
