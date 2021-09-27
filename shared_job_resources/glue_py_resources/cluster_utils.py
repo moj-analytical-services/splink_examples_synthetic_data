@@ -200,6 +200,7 @@ def format_edges_and_clusters_df_for_use_in_splink_graph(
     df_clusters: DataFrame,
     cluster_colname: str,
     match_weight_colname: str,
+    thres_filter: str,
     spark: SparkSession,
     uid_df_clusters_col: str = "unique_id",
     uid_col_l: str = "unique_id_l",
@@ -220,7 +221,9 @@ def format_edges_and_clusters_df_for_use_in_splink_graph(
         df_edges (DataFrame):
         df_clusters (DataFrame):
         cluster_colname (str): The name of the cluster column e.g. cluster_medium
-        match_weight_colname (str): Then name of the match weight column
+        match_weight_colname (str): Then name of the column containing the Splink match weight.  Will be used for the networkx weight/distance.
+        thres_filter (str): A SQL expression representing the filter to apply to the edges.
+            This filter should be the same filter applied when creating the clusters e.g. match_probability > 0.9
         spark (SparkSession): The pyspark.sql.session.SparkSession
         uid_df_clusters_col (str, optional): The name of the unique id column in the df_nodes table. Alternatively, a SQL expression defining a unique column. Defaults to "unique_id".  Used only if
             df_nodes is not None.
@@ -232,6 +235,7 @@ def format_edges_and_clusters_df_for_use_in_splink_graph(
 
     df_edges = df_edges.withColumn("___idl__", expr(uid_col_l))
     df_edges = df_edges.withColumn("___idr__", expr(uid_col_r))
+    df_edges = df_edges.filter(thres_filter)
     df_clusters = df_clusters.withColumn("___id__", expr(uid_df_clusters_col))
 
     df_edges.registerTempTable("df_edges")
@@ -256,6 +260,7 @@ def format_edges_and_clusters_df_for_use_in_splink_graph(
 
     where
         df_c_1.{cluster_colname} = df_c_2.{cluster_colname}
+
     """
     return spark.sql(sql)
 
@@ -275,15 +280,15 @@ def get_all_cluster_metrics(df_splink_graph):
 
     cluster_main_stats_df = cluster_main_stats(df_splink_graph)
 
-    cluster_conn_stats_df = cluster_connectivity_stats(df_splink_graph)
+    # cluster_conn_stats_df = cluster_connectivity_stats(df_splink_graph)
 
-    cluster_num_bridges = number_of_bridges(df_splink_graph, distance_colname="weight")
+    # cluster_num_bridges = number_of_bridges(df_splink_graph, distance_colname="weight")
 
-    cluster_assort_df = cluster_assortativity(df_splink_graph)
+    # cluster_assort_df = cluster_assortativity(df_splink_graph)
 
-    cluster_avg_eb_df = cluster_avg_edge_betweenness(
-        df_splink_graph, distance_colname="weight"
-    )
+    # cluster_avg_eb_df = cluster_avg_edge_betweenness(
+    #     df_splink_graph, distance_colname="weight"
+    # )
 
     cluster_eb_modularity_df = cluster_eb_modularity(
         df_splink_graph, distance_colname="weight"
@@ -292,12 +297,11 @@ def get_all_cluster_metrics(df_splink_graph):
     cluster_all_stats_df = (
         cluster_basic_stats_df.join(
             cluster_main_stats_df, on=["cluster_id"], how="left"
-        )
-        .join(cluster_eb_modularity_df, on=["cluster_id"], how="left")
-        .join(cluster_conn_stats_df, on=["cluster_id"], how="left")
-        .join(cluster_num_bridges, on=["cluster_id"], how="left")
-        .join(cluster_assort_df, on=["cluster_id"], how="left")
-        .join(cluster_avg_eb_df, on=["cluster_id"], how="left")
+        ).join(cluster_eb_modularity_df, on=["cluster_id"], how="left")
+        # .join(cluster_conn_stats_df, on=["cluster_id"], how="left")
+        # .join(cluster_num_bridges, on=["cluster_id"], how="left")
+        # .join(cluster_assort_df, on=["cluster_id"], how="left")
+        # .join(cluster_avg_eb_df, on=["cluster_id"], how="left")
     )
 
     return cluster_all_stats_df
