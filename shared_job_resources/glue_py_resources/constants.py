@@ -502,6 +502,57 @@ def get_graph_analytics_path(
     return path
 
 
+def get_cluster_truth_path(
+    entity,
+    dataset_or_datasets,
+    job_name,
+    snapshot_date,
+    version,
+    labelling_exercise,
+    cluster_colname,
+    trial_run=False,
+):
+    """Get full s3 path to cluster_truth data (clusters and whether they contain FP, FN etc)
+
+    Args:
+        entity (str): An entity type, for example 'person', or 'journey'
+        datasets (arr): An array of one or more dataset - e.g. ['mags_hocas', 'crown_xhibit']
+        job_name (str): The name of the job
+        snapshot_date (str): A snapshot date, for example '2020-03-21'
+        version (str): The version, to account for re-running jobs when codebase is updated
+        cluster_colname(str): The name of the cluster column e.g. cluster_medium
+        trial_run (bool): If a trial run, output to a different directory to avoid overwriting real data
+
+    """
+
+    _validate_all(**locals())
+    datasets = _standardise_dataset_or_datasets_to_arr(dataset_or_datasets)
+    datasets_path = _datasets_to_path(datasets)
+
+    if len(datasets) == 1:
+        snapshot_date_colname = "snapshot_date"
+    else:
+        snapshot_date_colname = "linking_snapshot_date"
+
+    tr_path = _get_trial_run_path_string(trial_run)
+
+    path = os.path.join(
+        BUCKET_MAIN_ROOT,
+        tr_path,
+        QA_ROOT,
+        "cluster_truth",
+        entity,
+        f"version={version}",
+        f"input_datasets={datasets_path}",
+        f"job_name={job_name}",
+        f"{snapshot_date_colname}={snapshot_date}",
+        f"labelling_exercise={labelling_exercise}",
+        f"cluster_colname={cluster_colname}",
+    )
+
+    return path
+
+
 def get_qa_paths(
     entity,
     dataset_or_datasets,
@@ -529,7 +580,6 @@ def get_qa_paths(
         "sample_for_labelling",
         "cached_potential_matches_for_labelling",
         "labels_with_scores",
-        "cluster_truth",
     ]
     for f in folders:
         path = os.path.join(
@@ -773,20 +823,35 @@ def get_paths_from_kwargs(**kwargs):
 if __name__ == "__main__":
 
     job_path = "graph_analytics/person/uk_citizens_max_groupsize_20/basic/01_graph_analytics/job.py"
+    job_path = "qa/cluster_truth/person/uk_citizens_max_groupsize_20/basic/job.py"
     parsed_args = parse_path(job_path)
+    # print(parsed_args)
 
     gap = get_graph_analytics_path(
         parsed_args["entity"],
         parsed_args["dataset_or_datasets"],
         parsed_args["job_name"],
-        "2021-01-01",
+        snapshot_date="2021-01-01",
+        version="v01",
+        metric_entity_type="cluster",
+        cluster_colname="cluster_medium",
+        trial_run=False,
+    )
+
+    # # paths = get_paths_from_job_path(job_path, "2021-01-01", "v01", trial_run=True)
+
+    # print(gap)
+    # # print(json.dumps(paths, indent=4))
+
+    clusters_path = get_cluster_truth_path(
+        "person",
+        "uk_citizens_max_groupsize_20",
+        "basic",
+        "2020-01-01",
         "v01",
-        "cluster",
+        "synth_data",
         "cluster_medium",
         trial_run=False,
     )
 
-    # paths = get_paths_from_job_path(job_path, "2021-01-01", "v01", trial_run=True)
-
-    print(gap)
-    # print(json.dumps(paths, indent=4))
+    print(clusters_path)

@@ -220,7 +220,7 @@ def format_edges_and_clusters_df_for_use_in_splink_graph(
     Args:
         df_edges (DataFrame):
         df_clusters (DataFrame):
-        cluster_colname (str): The name of the cluster column e.g. cluster_medium
+        cluster_colname (str): The name of the estimated cluster column e.g. cluster_medium
         match_weight_colname (str): Then name of the column containing the Splink match weight.  Will be used for the networkx weight/distance.
         thres_filter (str): A SQL expression representing the filter to apply to the edges.
             This filter should be the same filter applied when creating the clusters e.g. match_probability > 0.9
