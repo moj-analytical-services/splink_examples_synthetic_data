@@ -119,4 +119,6 @@ for cluster_colname in cluster_colnames[-5:]:
     results = cluster_metrics_inc_stability_df.join(
         df_fp_fn, on=cluster_colname, how="left"
     )
+
+    results = results.repartition(1)
     results.write.mode("overwrite").parquet(out_path)

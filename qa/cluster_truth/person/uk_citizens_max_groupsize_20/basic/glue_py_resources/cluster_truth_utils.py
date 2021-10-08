@@ -154,6 +154,7 @@ def label_est_clusters_fp_fn(
     if not retain_details:
         cols = [
             cluster_colname,
+            "num_nodes_in_est_cluster",
             "est_cluster_is_correct",
             "est_cluster_contains_false_positives",
             "est_cluster_contains_false_negatives",
