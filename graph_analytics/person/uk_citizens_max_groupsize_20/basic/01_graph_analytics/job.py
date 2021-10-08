@@ -4,28 +4,23 @@ import os
 from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
-import json
+
 
 from normalise_prob import probability_to_normalised_bayes_factor
 
-import pyspark.sql.functions as f
+from cluster_utils import (
+    format_edges_and_clusters_df_for_use_in_splink_graph,
+    get_all_cluster_metrics,
+    cluster_counts,
+    cluster_stability_statistics_raw,
+    cluster_stability_statistics_specific_threshold,
+)
 
-from constants import get_paths_from_job_path
+
+from constants import get_paths_from_job_path, get_graph_analytics_path, parse_path
 
 from custom_logger import get_custom_logger
 
-from splink_graph.cluster_metrics import (
-    cluster_basic_stats,
-    cluster_main_stats,
-    cluster_eb_modularity,
-    cluster_avg_edge_betweenness,
-    number_of_bridges,
-    cluster_connectivity_stats,
-    cluster_assortativity,
-    
-)
-from splink_graph.node_metrics import eigencentrality
-from splink_graph.edge_metrics import edgebetweeness
 
 sc = SparkContext()
 glue_context = GlueContext(sc)
@@ -36,15 +31,17 @@ spark = glue_context.spark_session
 
 args = getResolvedOptions(
     sys.argv,
-    ["JOB_NAME", "job_path", "snapshot_date", "commit_hash", "trial_run", "version",],
+    [
+        "JOB_NAME",
+        "job_path",
+        "snapshot_date",
+        "commit_hash",
+        "trial_run",
+        "version",
+    ],
 )
 
 trial_run = args["trial_run"] == "true"
-if trial_run:
-    PARALLELISM = 40
-else:
-    PARALLELISM = 100
-
 
 # Set up a custom logger than outputs to its own stream, grouped within the job run id
 # to separate out custom logs from general spark logs
@@ -64,7 +61,9 @@ for k, v in paths.items():
 df_edges = spark.read.parquet(paths["edges_path"])
 
 
-df_edges = probability_to_normalised_bayes_factor(df_edges, "tf_adjusted_match_prob")
+df_edges = probability_to_normalised_bayes_factor(
+    df_edges, "tf_adjusted_match_prob", "weight"
+)
 df_edges.createOrReplaceTempView("df_edges")
 
 df_clusters = spark.read.parquet(paths["clusters_path"])
@@ -73,113 +72,74 @@ df_clusters.createOrReplaceTempView("df_clusters")
 custom_log.info(f"{df_edges.count()} =df_edges.count()")
 custom_log.info(f"{df_clusters.count()} =df_clusters.count()")
 
-# where  df_c_1.cluster_medium = 13
-sql = """
-select
-    unique_id_l as src,
-    unique_id_r as dst,
-    match_score_norm as weight,
-    df_c_1.cluster_medium as cluster_id
-from
-    df_edges
 
-left join
-    df_clusters df_c_1
-    on df_edges.unique_id_l = df_c_1.unique_id
+cluster_colnames = [
+    "cluster_very_very_low",
+    "cluster_very_low",
+    "cluster_quite_low",
+    "cluster_low",
+    "cluster_medium",
+    "cluster_high",
+    "cluster_very_high",
+]
 
-left join
-    df_clusters as df_c_2
-    on df_edges.unique_id_r = df_c_2.unique_id
+cluster_thresholds = [0.01, 0.1, 0.25, 0.5, 0.8, 0.99, 0.999]
 
-where
-    df_c_1.cluster_medium = df_c_2.cluster_medium
-"""
-
-df = spark.sql(sql)
-
-custom_log.info(f"{df.count()} =df.count()")
+name_thres = list(zip(cluster_colnames, cluster_thresholds))[-5:]
+# name_thres = list(zip(cluster_colnames, cluster_thresholds))[-2:]
 
 
-cluster_basic_stats_df = cluster_basic_stats(df)
+# Cluster stability statistics
+cc_df = cluster_counts(df_clusters, cluster_colnames)
+cluster_stability_raw_df = cluster_stability_statistics_raw(cc_df, cluster_colnames)
+cluster_stability_raw_df.persist()
 
-cluster_main_stats_df = cluster_main_stats(df)
+# Add cluster stability statistics.  This is computed once at the start and then needs to be
+# aggregated then joined on to cluster_all_stats_df
 
-cluster_conn_stats_df = cluster_connectivity_stats(df)
+for cluster_colname, cluster_threshold in name_thres:
 
-cluster_num_bridges = number_of_bridges(df,distance_colname="weight")
+    parsed_args = parse_path(args["job_path"])
+    out_path = get_graph_analytics_path(
+        parsed_args["entity"],
+        parsed_args["dataset_or_datasets"],
+        parsed_args["job_name"],
+        args["snapshot_date"],
+        args["version"],
+        "cluster",
+        cluster_colname,
+        trial_run=trial_run,
+    )
 
-cluster_assort_df = cluster_assortativity(df)
+    custom_log.info(f"Path would be {out_path}")
 
-cluster_avg_eb_df = cluster_avg_edge_betweenness(df,distance_colname="weight")
+    fil = f"tf_adjusted_match_prob > {cluster_threshold}"
+    df_splink_graph = format_edges_and_clusters_df_for_use_in_splink_graph(
+        df_edges, df_clusters, cluster_colname, "weight", fil, spark
+    )
 
-cluster_eb_modularity_df = cluster_eb_modularity(df, distance_colname="weight")
+    # Use Splink Graph to get dataframe of cluster metrics at this threshold
+    # e.g. cluster_id = 10, density=0.8, diameter = 3 etc
+    cluster_metrics_splink_graph_df = get_all_cluster_metrics(df_splink_graph)
 
-cluster_all_stats_df = (
-    cluster_basic_stats_df.join(cluster_main_stats_df, on=["cluster_id"], how="left")
-    .join(cluster_eb_modularity_df, on=["cluster_id"], how="left")
-    .join(cluster_conn_stats_df, on=["cluster_id"], how="left")
-    .join(cluster_num_bridges, on=["cluster_id"], how="left")
-    .join(cluster_assort_df, on=["cluster_id"], how="left")
-    .join(cluster_avg_eb_df, on=["cluster_id"], how="left")
-)
+    # Join on cluster stability statistics at this level
+    # This is a dataframe like this:
+    # cluster_medium, avg_cluster_stdev
+    cluster_stab = cluster_stability_statistics_specific_threshold(
+        cluster_stability_raw_df, cluster_colname
+    )
 
+    # Join splink graph stats to cluster stab
+    join_cond = (
+        cluster_metrics_splink_graph_df["cluster_id"] == cluster_stab[cluster_colname]
+    )
+    cluster_metrics_inc_stability_df = cluster_stab.join(
+        cluster_metrics_splink_graph_df, on=join_cond, how="inner"
+    )
 
-out_path_root = paths["graph_analytics_path"]
+    cluster_metrics_inc_stability_df = cluster_metrics_inc_stability_df.repartition(1)
+    cluster_metrics_inc_stability_df.write.mode("overwrite").parquet(out_path)
 
-out_path = os.path.join(out_path_root, "all_cluster_metrics")
-cluster_all_stats_df = cluster_all_stats_df.repartition(1)
-cluster_all_stats_df.write.mode("overwrite").parquet(out_path)
-
-custom_log.info(f"Written cluster_all_stats_df")
-
-#node_df = eigencentrality(df)
-#out_path = os.path.join(out_path_root, "node_metrics")
-#node_df = node_df.repartition(1)
-#node_df.write.mode("overwrite").parquet(out_path)
-
-#custom_log.info(f"Written node_df")
-
-
-edge_metrics_df = edgebetweeness(df, distance_col="weight")
-
-df_edges.createOrReplaceTempView("df_edges")
-edge_metrics_df.createOrReplaceTempView("edge_metrics_df")
-
-sql = """
-select
-    em.*,
-    e.match_score_norm,
-    e.tf_adjusted_match_prob,
-    e.unique_id_l,
-    e.unique_id_r
-
-from
-edge_metrics_df as em
-left join df_edges as e
-on
-em.src = e.unique_id_l and em.dst = e.unique_id_r
-
-union all
-
-
-select
-    em.*,
-    e.match_score_norm,
-    e.tf_adjusted_match_prob,
-    e.unique_id_l,
-    e.unique_id_r
-
-from
-edge_metrics_df as em
-left join df_edges as e
-on
-em.src = e.unique_id_r and em.dst = e.unique_id_l
-
-"""
-
-edge_metrics_df = spark.sql(sql)
-edge_metrics_df = edge_metrics_df.repartition(10)
-out_path = os.path.join(out_path_root, "edge_metrics")
-edge_metrics_df.write.mode("overwrite").parquet(out_path)
-
-custom_log.info(f"Written edge_metrics_df")
+    custom_log.info(
+        f"Written cluster_metrics_inc_stability_df for {cluster_colname} threshold {cluster_threshold}"
+    )
