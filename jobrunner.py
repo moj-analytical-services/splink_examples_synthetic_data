@@ -7,14 +7,17 @@ import sys
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from job_configs.uk_citizens_max_groupsize_20 import uk_citizens_max_groupsize_20
+from job_configs.uk_citizens_max_groupsize_20 import (
+    uk_citizens_max_groupsize_20,
+)
+from job_configs.uk_citizens_max_groupsize_20_splink_v2 import (
+    uk_citizens_max_groupsize_20_splink_v2,
+)
 
 from job_runner_utils.run_job import run_job
 
 
-jobs = {
-    **uk_citizens_max_groupsize_20,
-}
+jobs = {**uk_citizens_max_groupsize_20, **uk_citizens_max_groupsize_20_splink_v2}
 
 for k, j in jobs.items():
     j["job_path"] = k
@@ -54,7 +57,7 @@ if __name__ == "__main__":
 
         if args.trial_run:
             job_args["trial_run"] = "true"
-            # job_args["allocated_capacity"] = 4
+            job_args["allocated_capacity"] = 3
         else:
             job_args["trial_run"] = "false"
 
