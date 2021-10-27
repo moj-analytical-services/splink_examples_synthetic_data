@@ -50,7 +50,14 @@ for k, v in paths.items():
 
 
 # # standardised nodes is the original list of people - no guarantee the edges will include every person.
-df_standardised_nodes = spark.read.parquet(paths["standardised_nodes_path"])
+PERSON_STANDARDISED_NODES_PATH = paths["standardised_nodes_path"]
+
+
+PERSON_STANDARDISED_NODES_PATH = PERSON_STANDARDISED_NODES_PATH.replace(
+    "splink_1_all_comparisons", "basic"
+)
+
+df_standardised_nodes = spark.read.parquet(PERSON_STANDARDISED_NODES_PATH)
 
 df_standardised_nodes = df_standardised_nodes.withColumn(
     "commit_hash", f.lit(args["commit_hash"])
@@ -63,9 +70,6 @@ df_standardised_nodes.createOrReplaceTempView("df_standardised_nodes")
 
 
 cluster_colnames = [
-    "cluster_very_very_low",
-    "cluster_very_low",
-    "cluster_quite_low",
     "cluster_low",
     "cluster_medium",
     "cluster_high",
@@ -74,7 +78,7 @@ cluster_colnames = [
 results = clusters_at_thresholds(
     df_standardised_nodes,
     df_edges,
-    [0.01, 0.1, 0.25, 0.5, 0.8, 0.99, 0.999],
+    [0.5, 0.8, 0.99, 0.999],
     cluster_colnames,
     spark,
     join_node_details=True,

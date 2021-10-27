@@ -70,7 +70,7 @@ df_edges = spark.read.parquet(edges_path)
 
 # Create labelled data from person id
 SOURCE_NODES_PATH = output_paths["source_nodes_path"]
-SOURCE_NODES_PATH = SOURCE_NODES_PATH.replace("splink_2_all_comparisons", "basic")
+SOURCE_NODES_PATH = SOURCE_NODES_PATH.replace("splink_1_all_comparisons", "basic")
 
 df_source = spark.read.parquet(SOURCE_NODES_PATH)
 

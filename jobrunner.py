@@ -14,10 +14,18 @@ from job_configs.uk_citizens_max_groupsize_20_splink_v2 import (
     uk_citizens_max_groupsize_20_splink_v2,
 )
 
+from job_configs.uk_citizens_max_groupsize_20_splink_v1 import (
+    uk_citizens_max_groupsize_20_splink_v1,
+)
+
 from job_runner_utils.run_job import run_job
 
 
-jobs = {**uk_citizens_max_groupsize_20, **uk_citizens_max_groupsize_20_splink_v2}
+jobs = {
+    **uk_citizens_max_groupsize_20,
+    **uk_citizens_max_groupsize_20_splink_v2,
+    **uk_citizens_max_groupsize_20_splink_v1,
+}
 
 for k, j in jobs.items():
     j["job_path"] = k

@@ -50,29 +50,28 @@ for k, v in paths.items():
 
 pc_dob_path = paths["training_models_path"].replace(
     "03_combine_blocks",
-    "01_block_postcode_dob",
+    "01_block_postcode",
 )
 
 pc_dob_path = os.path.join(pc_dob_path, "saved_model_final.json")
 
 name_occ_path = paths["training_models_path"].replace(
     "03_combine_blocks",
-    "02_name_occupation",
+    "02_block_name",
 )
 
 name_occ_path = os.path.join(name_occ_path, "saved_model_final.json")
 
 
-#  postcode date of birth model
+#  postcode model
 pc_dob_json = read_json_from_s3(pc_dob_path)
 pc_dob_model = load_model_from_dict(pc_dob_json)
 
-# name occupation model
+# name model
 name_occ_json = read_json_from_s3(name_occ_path)
 name_occ_model = load_model_from_dict(name_occ_json)
 
 
-cc_dob = name_occ_model.current_settings_obj.get_comparison_column("dob")
 cc_pc = name_occ_model.current_settings_obj.get_comparison_column(
     "custom_postcode_distance_comparison"
 )
@@ -81,21 +80,23 @@ cc_pc = name_occ_model.current_settings_obj.get_comparison_column(
 # Same thing from the surname/postcode blocking job
 cc_sn = pc_dob_model.current_settings_obj.get_comparison_column("surname_std")
 cc_fn = pc_dob_model.current_settings_obj.get_comparison_column("forename1_std")
-cc_occ = pc_dob_model.current_settings_obj.get_comparison_column("occupation")
 
 
 # To get out
 pc_dob_dict = {
     "name": "postcode_dob",
     "model": pc_dob_model,
-    "comparison_columns_for_global_lambda": [cc_pc, cc_dob],
+    "comparison_columns_for_global_lambda": [cc_pc],
 }
 
 
 name_occ_dict = {
     "name": "name_occ",
     "model": name_occ_model,
-    "comparison_columns_for_global_lambda": [cc_sn, cc_fn, cc_occ],
+    "comparison_columns_for_global_lambda": [
+        cc_sn,
+        cc_fn,
+    ],
 }
 
 
@@ -106,16 +107,11 @@ global_settings_dict = mc.get_combined_settings_dict()
 # Now we have global settings, we just need a set of blocking rules to produce potential matches
 
 global_settings_dict["blocking_rules"] = [
-    "l.forename1_dm = r.forename1_dm and l.occupation = r.occupation and l.dob_year = r.dob_year",
-    "l.postcode = r.postcode and l.surname_dm = r.surname_dm",
-    "l.postcode = r.postcode and l.forename1_dm = r.forename1_dm",
-    "l.outward_postcode_std = r.outward_postcode_std and l.dob = r.dob",
-    "l.forename1_dm = r.forename1_dm and l.surname_dm = r.surname_dm and l.forename2_std = r.forename2_std",
-    "l.forename1_dm = r.forename1_dm and l.surname_dm = r.surname_dm and l.birth_place = r.birth_place",
     "l.forename1_dm = r.forename1_dm and l.surname_dm = r.surname_dm",
-    "l.forename1_dm =  r.surname_dm and l.surname_dm = r.forename1_dm and l.dob_year = r.dob_year",
-    "l.forename1_dm =  r.surname_dm and l.surname_dm = r.forename1_dm",
-    "l.outward_postcode_std = r.outward_postcode_std and l.surname_dm = r.surname_dm  and l.dob_year = r.dob_year",
+    "l.surname_dm = r.surname_dm and l.occupation = r.occupation",
+    "l.postcode = r.postcode",
+    "l.cluster = r.cluster",
+    "l.dob = r.dob",
 ]
 
 path = os.path.join(paths["training_combined_model_path"], "combined_settings.json")
