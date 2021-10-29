@@ -108,7 +108,7 @@ select
 df_labels = spark.sql(sql)
 
 
-df_e_with_labels = labels_with_splink_scores(
+df_e_with_labels_v2 = labels_with_splink_scores(
     df_labels,
     df_edges,
     "unique_id",
@@ -118,8 +118,8 @@ df_e_with_labels = labels_with_splink_scores(
 )
 
 
-df_e_with_labels = df_e_with_labels.repartition(10)
-df_e_with_labels = df_e_with_labels.withColumn(
+df_e_with_labels_v2 = df_e_with_labels_v2.repartition(10)
+df_e_with_labels_v2 = df_e_with_labels_v2.withColumn(
     "commit_hash", f.lit(args["commit_hash"])
 )
 
@@ -127,7 +127,7 @@ df_e_with_labels = df_e_with_labels.withColumn(
 output_path = output_paths["labels_with_scores_path"]
 
 
-df_e_with_labels.write.mode("overwrite").parquet(output_path)
+df_e_with_labels_v2.write.mode("overwrite").parquet(output_path)
 
 custom_log.info(f"outputting scores with labels to to {output_path}")
 
@@ -136,49 +136,141 @@ spark.conf.set("spark.sql.shuffle.partitions", PARALLELISM)
 spark.conf.set("spark.default.parallelism", PARALLELISM)
 
 
-df_e_with_labels = spark.read.parquet(output_path)
+df_e_with_labels_v2 = spark.read.parquet(output_path)
 
-# Thin out the ROC curve by limiting the number of unique probabilities
 
-# score_colname = _get_score_colname(df_e_with_labels)
-
-# log2_bf_expr = f"log2({score_colname}/(1-{score_colname}))"
-
-# expr = f"""
-# case
-#     when {score_colname} = 0.0 then -100
-#     when {log2_bf_expr} < -20 or {log2_bf_expr} > 20 then round({log2_bf_expr},0)
-#     else round({log2_bf_expr},1)
-# end
-
-# """
-# df = df.withColumn("rounded", f.expr("round(d/5, 1)*5"))
-
-df_e_with_labels = df_e_with_labels.withColumn(
+df_e_with_labels_v2 = df_e_with_labels_v2.withColumn(
     "bf_temp", f.expr("round(df_e__tf_adjusted_match_weight/2, 1)*2")
 )
-df_e_with_labels = df_e_with_labels.withColumn(
+df_e_with_labels_v2 = df_e_with_labels_v2.withColumn(
     "tf_adjusted_match_prob", f.expr("power(2, bf_temp)/(1+power(2,bf_temp))")
 )
-df_e_with_labels = df_e_with_labels.drop("bf_temp")
+df_e_with_labels_v2 = df_e_with_labels_v2.drop("bf_temp")
 
 charts_path_roc = output_paths["charts_roc_path"]
 
-chart = roc_chart(df_e_with_labels, spark)
+# chart = roc_chart(df_e_with_labels_v2, spark)
+# chart.save("roc_chart.html")
+# write_local_file_to_s3(
+#     "roc_chart.html",
+#     charts_path_roc,
+#     overwrite=True,
+# )
+
+# COMPARISON
+
+
+edges_path = output_paths["edges_path"]
+edges_path = edges_path.replace("splink_2_all_comparisons", "splink_1_all_comparisons")
+df_edges = spark.read.parquet(edges_path)
+
+
+# Create labelled data from person id
+SOURCE_NODES_PATH = output_paths["source_nodes_path"]
+SOURCE_NODES_PATH = SOURCE_NODES_PATH.replace(
+    "splink_2_all_comparisons", "splink_1_all_comparisons"
+)
+
+df_source = spark.read.parquet(SOURCE_NODES_PATH)
+
+
+df_source.createOrReplaceTempView("df_source")
+df_edges.createOrReplaceTempView("df_edges")
+
+sql = """
+select
+    df_l.unique_id as unique_id_l,
+    df_l.source_dataset as source_dataset_l,
+    df_r.unique_id as unique_id_r,
+    df_r.source_dataset as source_dataset_r,
+    1.0 as clerical_match_score
+
+from df_source as df_l
+left join df_source as df_r
+
+on df_l.cluster = df_r.cluster
+
+where df_l.unique_id < df_r.unique_id
+
+union all
+
+select
+    df_edges.unique_id_l as unique_id_l,
+    df_edges.source_dataset_l as source_dataset_l,
+
+    df_edges.unique_id_r as unique_id_r,
+    df_edges.source_dataset_r as source_dataset_r,
+    0.0 as clerical_match_score
+    from df_edges
+    where  cluster_l != cluster_r
+"""
+df_labels = spark.sql(sql)
+
+
+df_e_with_labels_v1 = labels_with_splink_scores(
+    df_labels,
+    df_edges,
+    "unique_id",
+    spark,
+    source_dataset_colname="source_dataset",
+    retain_all_cols=True,
+)
+
+
+df_e_with_labels_v1 = df_e_with_labels_v1.repartition(10)
+df_e_with_labels_v1 = df_e_with_labels_v1.withColumn(
+    "commit_hash", f.lit(args["commit_hash"])
+)
+
+
+output_path = output_paths["labels_with_scores_path"]
+output_path = output_path.replace(
+    "splink_2_all_comparisons", "splink_1_all_comparisons"
+)
+
+df_e_with_labels_v1.write.mode("overwrite").parquet(output_path)
+
+custom_log.info(f"outputting scores with labels to to {output_path}")
+
+PARALLELISM = 20
+spark.conf.set("spark.sql.shuffle.partitions", PARALLELISM)
+spark.conf.set("spark.default.parallelism", PARALLELISM)
+
+
+df_e_with_labels_v1 = spark.read.parquet(output_path)
+
+# Thin out the ROC curve by limiting the number of unique probabilities
+
+score_colname = _get_score_colname(df_e_with_labels_v1)
+
+log2_bf_expr = f"log2({score_colname}/(1-{score_colname}))"
+
+expr = f"""
+case
+    when {score_colname} = 0.0 then -100
+    when {log2_bf_expr} < -30 or {log2_bf_expr} > 30 then {log2_bf_expr}
+    else round({log2_bf_expr},1)
+end
+
+"""
+
+df_e_with_labels_v1 = df_e_with_labels_v1.withColumn("bf_temp", f.expr(expr))
+
+df_e_with_labels_v1 = df_e_with_labels_v1.withColumn(
+    "bf_temp", f.expr("round(bf_temp/2, 1)*2")
+)
+
+df_e_with_labels_v1 = df_e_with_labels_v1.withColumn(
+    "tf_adjusted_match_prob", f.expr("power(2, bf_temp)/(1+power(2,bf_temp))")
+)
+df_e_with_labels_v1 = df_e_with_labels_v1.drop("bf_temp")
+
+dfs = {"splink_v1": df_e_with_labels_v1, "splink_v2": df_e_with_labels_v2}
+
+chart = roc_chart(dfs, spark)
 chart.save("roc_chart.html")
 write_local_file_to_s3(
     "roc_chart.html",
     charts_path_roc,
     overwrite=True,
 )
-
-# chart = precision_recall_chart(df_e_with_labels, spark)
-
-# charts_path_pr = output_paths["charts_precision_recall_path"]
-
-# chart.save("pr_chart.html")
-# write_local_file_to_s3(
-#     "pr_chart.html",
-#     charts_path_pr,
-#     overwrite=True,
-# )
